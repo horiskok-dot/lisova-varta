@@ -1,4 +1,4 @@
-const {test}=require('node:test');const assert=require('node:assert/strict');const C=require('../dist/core.js');
+const {test}=require('node:test');const assert=require('node:assert/strict');const C=require('../web/core.js');
 const now=Date.parse('2026-10-18T12:00:00Z'),base={lat:50,lng:30};
 const point=(id,extra={})=>({id,name:id,type:'water',status:'needs',priority:'medium',lat:50.01,lng:30,checkedAt:'',due:'',owner:'',note:'',photo:'',...extra});
 test('Haversine matches known equatorial distance and symmetry',()=>{assert.ok(Math.abs(C.distance({lat:0,lng:0},{lat:0,lng:1})-111.195)<.01);assert.equal(C.distance(base,base),0);assert.equal(C.distance(base,{lat:49,lng:31}),C.distance({lat:49,lng:31},base));});

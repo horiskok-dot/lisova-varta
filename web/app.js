@@ -5,20 +5,13 @@ const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Kyiv',year:'nu
 const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateLabel=s=>s?new Intl.DateTimeFormat('ru',{day:'numeric',month:'short'}).format(new Date(s+'T12:00:00')):'не проверялся';
-function demo(){const make=(id,name,type,status,priority,lat,lng,ago,note,owner='')=>({id,name,type,status,priority,lat,lng,checkedAt:ago===null?'':daysAgo(ago),note,owner,due:'',photo:''});return {version:1,demo:true,base:{lat:50.537,lng:30.352},points:[
-make('d1','Водоём у северной просеки','water','needs','high',50.565,30.369,24,'Учебный объект: проверить уровень воды и подъезд.','Лесной патруль'),
-make('d2','Завал на лесной дороге','obstacle','problem','high',50.552,30.383,3,'Учебный объект: упавшие деревья перекрывают проезд.','Бригада № 2'),
-make('d3','Пруд у старого карьера','water','problem','high',50.543,30.328,18,'Учебный объект: уровень воды снизился, нужен повторный осмотр.','Лесной патруль'),
-make('d4','Сухие ветки у просеки','fuel','problem','medium',50.569,30.335,7,'Учебный объект: убрать растительные отходы с обочины.','Бригада № 1'),
-make('d5','Водоём у южного въезда','water','verified','medium',50.531,30.376,2,'Учебный объект: вода есть, подъезд свободен.','Лесной патруль'),
-make('d6','Восточный лесной проезд','obstacle','needs','medium',50.559,30.409,null,'Учебный объект: состояние проезда неизвестно.'),
-make('d7','Западная точка забора','water','verified','low',50.552,30.309,5,'Учебный объект: площадка доступна.','Лесной патруль'),
-make('d8','Расчищенная обочина','fuel','resolved','low',50.527,30.345,1,'Учебный объект: отходы убраны.','Бригада № 1')],log:[{text:'Загружены учебные данные. Они не описывают реальную территорию.',time:new Date().toISOString()}]};}
+function emptyJournal(){return {version:1,demo:false,base:{lat:50.55,lng:30.35},points:[],log:[]};}
 function toast(message){clearTimeout(toastTimer);$('#toast').textContent=message;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,5500);}
-try{const raw=localStorage.getItem(KEY);state=raw?C.validate(JSON.parse(raw)):demo();if(!raw)localStorage.setItem(KEY,JSON.stringify(state));}catch(e){state=demo();storageOK=false;setTimeout(()=>toast('Не удалось прочитать журнал. Экспортируйте данные перед закрытием. '+e.message),500);}
+try{const raw=localStorage.getItem(KEY);state=raw?C.validate(JSON.parse(raw)):emptyJournal();if(!raw)localStorage.setItem(KEY,JSON.stringify(state));}catch(e){state=emptyJournal();storageOK=false;setTimeout(()=>toast('Не удалось прочитать журнал. Экспортируйте данные перед закрытием. '+e.message),500);}
+if(state.demo){try{const original=JSON.stringify(state);const remaining=state.points.filter(p=>!(/^d[1-8]$/.test(p.id)&&p.note.startsWith('Учебный объект:')&&!p.photo));if(remaining.length<state.points.length){localStorage.setItem('forest-watch-before-live',original);state={...state,points:remaining,demo:remaining.some(p=>/^d[1-8]$/.test(p.id)),log:[{text:'Исходные учебные точки убраны. Старый журнал сохранён в резервной копии.',time:new Date().toISOString()},...state.log]};localStorage.setItem(KEY,JSON.stringify(state));}}catch{setTimeout(()=>toast('Не удалось убрать старые учебные точки. Экспортируйте журнал и освободите память браузера.'),500);}}
 function commit(next,message){try{localStorage.setItem(KEY,JSON.stringify(next));state=next;storageOK=true;route=null;render();if(message)toast(message);return true;}catch{toast('Не удалось сохранить: память браузера недоступна или заполнена. Экспортируйте журнал и уменьшите фото.');return false;}}
 function withLog(next,text){next.log=[{text,time:new Date().toISOString()},...next.log].slice(0,200);return next;}
-const symbol=p=>p.type==='water'?'≈':p.type==='obstacle'?'!':'♧';
+const symbol=p=>p.type==='water'?'≈':p.type==='obstacle'?'!':p.type==='hotspot'?'✧':'♧';
 const pointClass=p=>p.status==='problem'?'problem':p.status==='needs'||C.stale(p)?'needs':'';
 function badge(p){return `<span class="badge ${p.status==='problem'?'problem':p.status==='needs'?'needs':''}">${C.STATUS[p.status]}</span>`;}
 const map=L.map('map',{zoomControl:true}).setView([50.549,30.36],13);
@@ -56,7 +49,7 @@ $('#plan').onclick=()=>{try{const budget=Number($('#budget').value),speed=Number
 $('#export').onclick=()=>{const blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`forest-watch-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Журнал экспортирован вместе с фото. Сохраните файл как резервную копию.');};
 $('#import-button').onclick=()=>$('#import').click();$('#import').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>8*1024*1024)throw Error('Файл слишком большой: максимум 8 МБ.');const next=C.validate(JSON.parse(await f.text()));if(confirm(`Заменить текущий журнал (${state.points.length} объектов) импортированным (${next.points.length})? Сначала экспортируйте текущий, если он нужен.`)){if(commit(withLog(next,'Импортирован журнал из файла.'),'Журнал импортирован'))fit();}}catch(err){toast('Импорт отменён: '+err.message);}finally{e.target.value='';}};
 $('#clear-demo').onclick=()=>{if(confirm('Очистить текущий журнал и начать свой? Экспортируйте его, если хотите сохранить.')){if(commit({version:1,points:[],base:state.base,demo:false,log:[{text:'Создан личный журнал.',time:new Date().toISOString()}]},'Ваш журнал готов. Добавьте первый объект на карте.')){filter='all';setFilter('all');}}};
-$('#load-demo').onclick=()=>{if(confirm('Заменить текущий журнал учебными данными? Экспортируйте текущий журнал, если он нужен.'))if(commit(demo(),'Учебные данные загружены')){query='';$('#search').value='';setFilter('all');fit();}};
+$('#load-demo').onclick=()=>$('#help-dialog').showModal();
 function network(){const online=navigator.onLine;$('#connection').textContent=online?'● Онлайн':'○ Без сети';if(online&&!map.hasLayer(tiles)){tileFailures=0;tiles.addTo(map);}if(!online&&map.hasLayer(tiles))map.removeLayer(tiles);drawGrid();}window.addEventListener('online',network);window.addEventListener('offline',network);
 window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{state=C.validate(JSON.parse(e.newValue));route=null;render();toast('Журнал обновлён в другой вкладке.');}catch{toast('Не удалось прочитать изменения другой вкладки.');}}});
 render();setView(location.hash.slice(1)||'map');network();fit();
