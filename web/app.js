@@ -50,7 +50,7 @@ function setView(view){if(!['map','tasks','log'].includes(view))view='map';docum
 $$('.nav').forEach(b=>b.onclick=()=>setView(b.dataset.view));window.addEventListener('hashchange',()=>setView(location.hash.replace(/^#\/?/,'')));
 function setFilter(f){filter=f;$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===f));renderList();renderMap();}
 $$('[data-filter]').forEach(b=>b.onclick=()=>setFilter(b.dataset.filter));$$('[data-stat]').forEach(b=>b.onclick=()=>{setView('map');setFilter(b.dataset.stat);});$('#search').oninput=e=>{query=e.target.value.trim().toLowerCase();renderList();renderMap();};
-function fit(){map.invalidateSize();map.fitBounds(UKRAINE_BOUNDS,{padding:[8,8]});}$('#fit').onclick=fit;
+function fit(){map.invalidateSize();map.fitBounds(UKRAINE_BOUNDS,{padding:[8,8]});$('#map-region-title').textContent='Вся Украина';}$('#fit').onclick=fit;
 $('#locate').onclick=()=>{const found=pos=>{map.setView([pos.coords.latitude,pos.coords.longitude],15);toast('Ваше место показано. Нажмите на карту для новой записи.');};const failed=()=>toast('Не удалось получить местоположение. Разрешите геолокацию или выберите место на карте.');if(window.ForestNative?.isNative){window.ForestNative.locate().then(found,failed);return;}if(!navigator.geolocation){failed();return;}navigator.geolocation.getCurrentPosition(found,failed,{timeout:10000,maximumAge:30000});};
 function editorSnapshot(){return JSON.stringify([...$('#point-form').elements].filter(e=>e.id&&e.type!=='file'&&e.tagName!=='BUTTON').map(e=>[e.id,e.value]).concat([['photo',photo]]));}
 function editorDirty(){return $('#editor').open&&editorSnapshot()!==editorBaseline;}

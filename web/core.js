@@ -1,6 +1,6 @@
 (function(root){
   'use strict';
-  const TYPES={water:'Источник воды',obstacle:'Препятствие',fuel:'Сухие отходы',hotspot:'Спутниковая отметка'};
+  const TYPES={water:'Источник воды',vegetation:'Зелёная зона',obstacle:'Препятствие',fuel:'Сухие отходы',hotspot:'Спутниковая отметка'};
   const STATUS={needs:'Нужно проверить',verified:'Проверен',problem:'Проблема',resolved:'Устранено'};
   function distance(a,b){const r=Math.PI/180;const dlat=(b.lat-a.lat)*r,dlng=(b.lng-a.lng)*r;const x=Math.sin(dlat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dlng/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));}
   function age(p,now=Date.now()){return p.checkedAt?Math.max(0,(now-new Date(p.checkedAt+'T00:00:00Z').getTime())/86400000):365;}

@@ -77,6 +77,7 @@ function isWaterNode(p){return p.geometryType==='node'||p.id?.startsWith('osm-no
 const cancelWaterButton=document.createElement('button');
 cancelWaterButton.className='btn small map-cancel-pick';cancelWaterButton.type='button';cancelWaterButton.textContent='Отменить выбор точки';cancelWaterButton.hidden=true;$('#map-hint').after(cancelWaterButton);
 window.ForestCancelMapClick=()=>{window.ForestMapClick=null;cancelWaterButton.hidden=true;$('#map-hint').textContent='Нажмите на карту, чтобы добавить объект';};
+window.ForestBeginMapClick=(handler,hint)=>{window.ForestCancelMapClick();window.ForestMapClick=handler;cancelWaterButton.hidden=false;$('#map-hint').textContent=hint;};
 cancelWaterButton.onclick=window.ForestCancelMapClick;
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.ForestMapClick)window.ForestCancelMapClick();});
 function waterDraft(p,coords){
@@ -91,9 +92,7 @@ function addWater(p){
   if(isWaterNode(p)){waterDraft(p,{lat:p.lat,lng:p.lng});return;}
   if(!Array.isArray(p.geometry)||!p.geometry.length){toast('У сохранённого водоёма нет контура. Обновите данные OSM перед выбором точки доступа.');return;}
   setView('map');map.fitBounds(L.latLngBounds(p.geometry.flat()),{padding:[45,45],maxZoom:16});
-  window.ForestMapClick=coords=>{window.ForestCancelMapClick();waterDraft(p,coords);return true;};
-  cancelWaterButton.hidden=false;
-  $('#map-hint').textContent='Выберите на карте место доступа к водоёму';
+  window.ForestBeginMapClick(coords=>{window.ForestCancelMapClick();waterDraft(p,coords);return true;},'Выберите на карте место доступа к водоёму');
   $('#map').scrollIntoView({block:'center',behavior:'smooth'});
   toast('Нажмите на карте там, где нужно проверить доступ к воде. Контур OSM сам по себе не указывает точку забора.');
 }
