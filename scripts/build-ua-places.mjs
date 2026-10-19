@@ -13,7 +13,7 @@ const places=fs.readFileSync(source,'utf8').trim().split(/\r?\n/).flatMap(line=>
   const f=line.split('\t');if(f[6]!=='P')return [];
   const aliases=[...new Set(f[3].split(',').filter(name=>cyrillic.test(name)))];
   const ukrainian=aliases.find(name=>/[ІіЇїЄєҐґ]/.test(name))||'';
-  const russian=aliases.find(name=>name!==ukrainian)||'';
+  const russian=aliases.find(name=>/[ЁёЪъЫыЭэ]/.test(name))||aliases.find(name=>name!==ukrainian&&!/[ӰӱӲӳ]/.test(name))||'';
   return [[Number(f[0]),f[1],ukrainian,russian,admin[f[10]]||'',Number(f[4]),Number(f[5]),f[7],Number(f[14])||0]];
 });
 fs.writeFileSync(output,JSON.stringify({source:'GeoNames',updated:new Date().toISOString().slice(0,10),places}));

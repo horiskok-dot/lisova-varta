@@ -5,3 +5,5 @@ node_modules/
 qa/
 dist/
 releases/
+
+data/
