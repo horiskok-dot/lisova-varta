@@ -73,26 +73,50 @@ function renderWeather(data,cached=false){
   updateSummary();updateAreaNotices();
 }
 async function refreshWeather(){return load('weather',async signal=>{const c=map.getCenter(),data=await api('weather',{lat:c.lat.toFixed(3),lng:c.lng.toFixed(3)},signal);renderWeather(data);saveSource('weather',data);});}
+function isWaterNode(p){return p.geometryType==='node'||p.id?.startsWith('osm-node-');}
+const cancelWaterButton=document.createElement('button');
+cancelWaterButton.className='btn small';cancelWaterButton.type='button';cancelWaterButton.textContent='Отменить выбор точки';cancelWaterButton.hidden=true;$('#map-hint').after(cancelWaterButton);
+window.ForestCancelMapClick=()=>{window.ForestMapClick=null;cancelWaterButton.hidden=true;$('#map-hint').textContent='Нажмите на карту, чтобы добавить объект';};
+cancelWaterButton.onclick=window.ForestCancelMapClick;
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.ForestMapClick)window.ForestCancelMapClick();});
+function waterDraft(p,coords){
+  const locatedByUser=!isWaterNode(p);
+  const note=`Источник: OpenStreetMap, ${p.url}. Тип: ${p.kind}. Доступ: ${p.access}. ${locatedByUser?'Точку возможного доступа пользователь указал на карте.':'Координата объекта взята из OSM.'} Наличие воды, точка забора и проезд не проверены.`;
+  const point={id:p.id,name:p.name,type:'water',status:'needs',priority:'medium',lat:coords.lat,lng:coords.lng,owner:'',note:note.slice(0,1500),checkedAt:'',due:'',photo:''};
+  openEditor(point);$('#editor-title').textContent=locatedByUser?'Добавить точку доступа для проверки':'Добавить объект OSM для проверки';
+}
 function addWater(p){
+  window.ForestCancelMapClick();
   const existing=state.points.find(v=>v.id===p.id);if(existing){focusPoint(existing.id);return;}
-  const note=`Источник: OpenStreetMap, ${p.url}. Тип: ${p.kind}. Доступ: ${p.access}. Координаты указывают центр объекта. Наличие воды, точка забора и проезд НЕ проверены.`;
-  const point={id:p.id,name:p.name,type:'water',status:'needs',priority:'medium',lat:p.lat,lng:p.lng,owner:'',note:note.slice(0,1500),checkedAt:'',due:'',photo:''};
-  openEditor(point);$('#editor-title').textContent='Добавить объект из OSM';
+  if(isWaterNode(p)){waterDraft(p,{lat:p.lat,lng:p.lng});return;}
+  if(!Array.isArray(p.geometry)||!p.geometry.length){toast('У сохранённого водоёма нет контура. Обновите данные OSM перед выбором точки доступа.');return;}
+  setView('map');map.fitBounds(L.latLngBounds(p.geometry.flat()),{padding:[45,45],maxZoom:16});
+  window.ForestMapClick=coords=>{window.ForestCancelMapClick();waterDraft(p,coords);return true;};
+  cancelWaterButton.hidden=false;
+  $('#map-hint').textContent='Выберите на карте место доступа к водоёму';
+  $('#map').scrollIntoView({block:'center',behavior:'smooth'});
+  toast('Нажмите на карте там, где нужно проверить доступ к воде. Контур OSM сам по себе не указывает точку забора.');
 }
 function renderWater(data,cached=false){
   if(!Array.isArray(data.points)||!data.bounds||!Number.isFinite(Date.parse(data.fetchedAt)))throw Error('Неполные данные OSM.');
   waterData=data;const listWasOpen=$('#water-data details')?.open;
   liveLayers.water.clearLayers();L.rectangle([[data.bounds.south,data.bounds.west],[data.bounds.north,data.bounds.east]],{color:'#277993',weight:1,dashArray:'4 6',fill:false,interactive:false}).addTo(liveLayers.water);
   const kindLabel={water:'Водоём',pond:'Пруд',lake:'Озеро',reservoir:'Водохранилище',fire_hydrant:'Гидрант',water_tank:'Резервуар',suction_point:'Точка забора'};
+  const legacyAreas=data.points.some(p=>!isWaterNode(p)&&(!Array.isArray(p.geometry)||!p.geometry.length));
   for(const p of data.points){
     if(state.points.some(v=>v.id===p.id))continue;
-    const marker=L.marker([p.lat,p.lng],{title:p.name,alt:p.name,icon:L.divIcon({className:'marker-wrap',html:'<span class="source-map-marker">≈</span>',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(liveLayers.water);
-    const div=document.createElement('div');div.innerHTML=`<b>${esc(p.name)}</b><br>${esc(kindLabel[p.kind]||'Водный объект')} · OSM<br>Подъезд и вода не проверены.<br>Центр объекта, не точка забора.<br>Изменение карты: ${esc(stamp(p.lastEdited))}<br><a href="${esc(p.url)}" target="_blank" rel="noopener">Открыть объект в OSM ↗</a><br><button class="btn primary small popup-button">Добавить в журнал</button>`;
-    div.querySelector('button').onclick=()=>addWater(p);marker.bindPopup(div);
+    const node=isWaterNode(p),shape=Array.isArray(p.geometry)&&p.geometry.length?p.geometry:null;
+    if(!node&&!shape)continue;
+    const div=document.createElement('div');div.innerHTML=`<b>${esc(p.name)}</b><br>${esc(kindLabel[p.kind]||'Водный объект')} · OSM<br>${node?'Координата объекта OSM.':'Контур объекта OSM; точка доступа не указана.'}<br>Подъезд и наличие воды не проверены.<br>Изменение карты: ${esc(stamp(p.lastEdited))}<br><a href="${esc(p.url)}" target="_blank" rel="noopener">Открыть объект в OSM ↗</a><br><button class="btn primary small popup-button">${node?'Добавить для проверки':'Указать точку доступа'}</button>`;
+    div.querySelector('button').onclick=()=>addWater(p);
+    if(node){L.marker([p.lat,p.lng],{title:p.name,alt:p.name,icon:L.divIcon({className:'marker-wrap',html:'<span class="source-map-marker">≈</span>',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(liveLayers.water).bindPopup(div);continue;}
+    const ring=shape.length===1?shape[0]:null,closed=ring?.length>=4&&ring[0][0]===ring.at(-1)[0]&&ring[0][1]===ring.at(-1)[1];
+    const options={color:'#277993',weight:2,opacity:.9,fillColor:'#4cabc5',fillOpacity:.2,bubblingMouseEvents:false};
+    (closed?L.polygon(ring,options):L.polyline(shape,options)).addTo(liveLayers.water).bindPopup(div);
   }
-  $('#water-data').innerHTML=`<p class="source-number"><b>${data.points.length}</b> водных объектов в загруженном участке</p><p class="source-note">Синий контур — границы поиска. Наличие воды и подъезд не проверены.${data.truncated?' Показаны первые 200 объектов; приблизьте нужное место.':''}</p>${sourceTime('water',data,cached)}`;
+  $('#water-data').innerHTML=`<p class="source-number"><b>${data.points.length}</b> водных объектов в загруженном участке</p><p class="source-note">Пунктир — границы поиска. Голубые линии — контуры водоёмов OSM, пустые кружки — точечные объекты OSM. Для водоёма место доступа укажите на карте. Наличие воды и подъезд не проверены.${legacyAreas?' У сохранённой копии нет контуров: обновите OSM.':''}${data.truncated?' Показаны первые 200 объектов; приблизьте нужное место.':''}</p>${sourceTime('water',data,cached)}`;
   const list=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Список объектов';list.append(summary);list.open=!!listWasOpen;
-  for(const p of data.points){const b=document.createElement('button');b.className='source-list-item';b.textContent=p.name+(state.points.some(v=>v.id===p.id)?' → Открыть запись':' → Добавить');b.onclick=()=>addWater(p);list.append(b);}
+  for(const p of data.points){const b=document.createElement('button');b.className='source-list-item';b.textContent=p.name+(state.points.some(v=>v.id===p.id)?' → Открыть запись':isWaterNode(p)?' → Добавить для проверки':' → Указать точку доступа');b.disabled=!isWaterNode(p)&&(!Array.isArray(p.geometry)||!p.geometry.length);b.onclick=()=>addWater(p);list.append(b);}
   $('#water-data').append(list);toggleLayer('water');updateSummary();updateAreaNotices();
 }
 function renderFires(data,cached=false){

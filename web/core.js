@@ -28,7 +28,8 @@
     const ids=new Set();const str=(v,n)=>typeof v==='string'&&v.length<=n;const date=v=>v===''||validDate(v);
     const points=data.points.map(p=>{if(!p||!str(p.id,100)||!p.id||ids.has(p.id)||!str(p.name,100)||!p.name.trim()||!Object.hasOwn(TYPES,p.type)||!Object.hasOwn(STATUS,p.status)||!['high','medium','low'].includes(p.priority)||!Number.isFinite(p.lat)||Math.abs(p.lat)>85||!Number.isFinite(p.lng)||Math.abs(p.lng)>180||!str(p.owner,80)||!str(p.note,1500)||!date(p.checkedAt)||!date(p.due)||!(p.photo===''||(str(p.photo,450000)&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.photo))))throw Error('В файле есть некорректная точка. Импорт отменён.');ids.add(p.id);return Object.fromEntries(['id','name','type','status','priority','lat','lng','owner','note','checkedAt','due','photo'].map(k=>[k,p[k]]));});
     if(!data.base||!Number.isFinite(data.base.lat)||Math.abs(data.base.lat)>85||!Number.isFinite(data.base.lng)||Math.abs(data.base.lng)>180)throw Error('Некорректная стартовая точка.');
-    return {version:1,points,base:{lat:data.base.lat,lng:data.base.lng},demo:data.demo===true,log:Array.isArray(data.log)?data.log.slice(0,200).filter(e=>e&&str(e.text,300)&&str(e.time,40)&&!isNaN(Date.parse(e.time))).map(e=>({text:e.text,time:e.time})):[]};
+    const legacyBaseChosen=data.baseSet===undefined&&(data.demo===true||Math.abs(data.base.lat-50.55)>1e-7||Math.abs(data.base.lng-30.35)>1e-7);
+    return {version:1,points,base:{lat:data.base.lat,lng:data.base.lng},baseSet:data.baseSet===true||legacyBaseChosen,demo:data.demo===true,log:Array.isArray(data.log)?data.log.slice(0,200).filter(e=>e&&str(e.text,300)&&str(e.time,40)&&!isNaN(Date.parse(e.time))).map(e=>({text:e.text,time:e.time})):[]};
   }
   const api={TYPES,STATUS,distance,age,stale,priority,plan,validDate,countLabel,gpx,validate};if(typeof module!=='undefined')module.exports=api;else root.ForestCore=api;
 })(typeof window!=='undefined'?window:globalThis);

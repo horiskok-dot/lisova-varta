@@ -1,4 +1,4 @@
-const CACHE='forest-watch-v5';
+const CACHE='forest-watch-v6';
 const ASSETS=['./','./index.html','./style.css','./core.js','./app.js','./country.js','./ua-places.json','./live.js','./install.js','./vendor/leaflet.js','./vendor/leaflet.css','./icon.svg','./icons/icon-192.png','./icons/icon-512.png','./manifest.webmanifest'];
 const urls=ASSETS.map(p=>new URL(p,self.registration.scope).href);
 const allowed=new Set(urls.map(p=>new URL(p).pathname));
