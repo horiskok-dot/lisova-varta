@@ -38,3 +38,8 @@
 Перед подачей необходимы реальные пилотные проверки с лесничеством, сравнение алгоритма с базовым подходом на одинаковых данных, публичный GitHub и видео до 3 минут. Этот прототип сам по себе не подтверждает новизну или эффективность. При использовании ИИ укажите это по правилам конкурса.
 
 Leaflet: BSD-2-Clause, лицензия в web/vendor/LEAFLET-LICENSE.txt. OSM: © OpenStreetMap contributors, ODbL. Погода Open-Meteo: CC BY 4.0. Атрибуция источников сохранена в интерфейсе. Массового скачивания тайлов нет.
+
+
+### Nationwide map and place search
+
+The map opens over Ukraine with Esri World Imagery satellite tiles and an OpenStreetMap street layer. The offline search catalog contains 33,000+ populated places from the GeoNames Ukraine country dump; its source data is licensed under CC BY 4.0. Rebuild the catalog with `node scripts/build-ua-places.mjs` after downloading `UA.zip` and `admin1CodesASCII.txt` into `data/geonames/`. Satellite tiles require internet access. OSM water objects are loaded around the selected map center after zooming into a local area.

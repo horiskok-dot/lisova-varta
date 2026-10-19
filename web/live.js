@@ -32,7 +32,7 @@ async function api(name,params,signal){
     }catch(e){if(signal.aborted)throw e;}
   }
   if(name==='places'){
-    try{const d=await getJson('https://geocoding-api.open-meteo.com/v1/search?'+new URLSearchParams({name:params.q,count:'5',language:'ru',format:'json'}),signal,12000);return {results:(d.results||[]).map(p=>({name:p.name,region:p.admin1||'',country:p.country||'',lat:p.latitude,lng:p.longitude}))};}
+    try{const d=await getJson('https://geocoding-api.open-meteo.com/v1/search?'+new URLSearchParams({name:params.q,count:'100',countryCode:'UA',language:'uk',format:'json'}),signal,12000);return {results:(d.results||[]).map(p=>({name:p.name,region:p.admin1||'',country:p.country||'',lat:p.latitude,lng:p.longitude}))};}
     catch(e){if(signal.aborted)throw e;}
   }
   return getJson('/api/'+name+'?'+new URLSearchParams(params),signal,28000);
@@ -53,7 +53,7 @@ function updateAreaNotices(){
 function networkSources(){
   const allowed=onlineAllowed();
   if(!allowed)for(const controller of requests.values())controller.abort();
-  for(const [name,id]of Object.entries(sourceButtons)){$(id).disabled=!allowed||requests.has(name);$(id).title=allowed?'':'Для обновления включите сеть';}
+  for(const [name,id]of Object.entries(sourceButtons)){const areaReady=name!=='water'||map.getZoom()>=11;$(id).disabled=!allowed||requests.has(name)||!areaReady;$(id).title=!allowed?'Для обновления включите сеть':!areaReady?'Сначала выберите населённый пункт и приблизьте карту':'Обновить данные';}
   $('#area-search').disabled=!allowed;$('#field-notice').hidden=allowed;updateSummary();
 }
 async function load(name,fn){
@@ -111,13 +111,13 @@ function renderFires(data,cached=false){
 function toggleLayer(name){const enabled=$('#'+name+'-visible').checked;writePreference('forest-layer-'+name,enabled?'1':'0');if(enabled&&!map.hasLayer(liveLayers[name]))liveLayers[name].addTo(map);else if(!enabled&&map.hasLayer(liveLayers[name]))map.removeLayer(liveLayers[name]);}
 $('#weather-refresh').onclick=refreshWeather;
 for(const name of ['water','fires']){$('#'+name+'-visible').checked=readLocal('forest-layer-'+name)!=='0';$('#'+name+'-visible').onchange=()=>toggleLayer(name);}
-$('#water-refresh').onclick=()=>load('water',async signal=>{const c=map.getCenter(),data=await api('water',{lat:c.lat.toFixed(3),lng:c.lng.toFixed(3)},signal);renderWater(data);saveSource('water',data);toast('Объекты OSM загружены. Выберите маркер или запись в списке.');});
+$('#water-refresh').onclick=()=>{if(map.getZoom()<11){toast('Выберите город или приблизьте нужный участок до уровня улиц.');return;}return load('water',async signal=>{const c=map.getCenter(),data=await api('water',{lat:c.lat.toFixed(3),lng:c.lng.toFixed(3)},signal);renderWater(data);saveSource('water',data);toast('Объекты OSM загружены. Выберите маркер или запись в списке.');});};
 $('#fires-refresh').onclick=()=>load('fires',async signal=>{const b=map.getBounds(),data=await api('fires',{south:b.getSouth().toFixed(3),west:b.getWest().toFixed(3),north:b.getNorth().toFixed(3),east:b.getEast().toFixed(3)},signal);renderFires(data);saveSource('fires',data);});
 $('#find-area').onclick=()=>load('places',async signal=>{const el=$('#area-result'),q=$('#area-search').value.trim();el.textContent='';if(q.length<2||q.length>100)throw Error('Введите название из 2–100 символов.');const data=await api('places',{q},signal);if(!data.results.length){el.textContent='Ничего не найдено. Попробуйте другое название.';return;}for(const p of data.results){if(!Number.isFinite(p.lat)||!Number.isFinite(p.lng))continue;const b=document.createElement('button');b.className='btn small';b.textContent=[p.name,p.region,p.country].filter(Boolean).join(', ');b.onclick=()=>{map.setView([p.lat,p.lng],13);el.textContent=[p.name,p.country].filter(Boolean).join(', ');refreshWeather();};el.append(b);}});
 $('#area-search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#find-area').click();}};
 for(const [name,renderer]of [['weather',renderWeather],['water',renderWater],['fires',renderFires]]){const data=readSource(name);if(data){try{renderer(data,true);}catch{}}}
 const oldBackup=readLocal('forest-watch-before-live');if(oldBackup){const b=document.createElement('button');b.className='btn';b.textContent='Скачать журнал до обновления';b.onclick=()=>downloadFile(oldBackup,'forest-watch-before-live.json','application/json');$('#help-dialog .help-content').append(b);}
-map.on('moveend',updateAreaNotices);
+map.on('moveend',()=>{updateAreaNotices();networkSources();});
 window.addEventListener('journal-changed',()=>{if(waterData)renderWater(waterData,true);});
 for(const event of ['field-mode-changed','online','offline'])window.addEventListener(event,networkSources);
-networkSources();if(onlineAllowed()){refreshWeather();if(!waterData&&state.points.length===0)$('#water-refresh').click();}
+networkSources();if(onlineAllowed())refreshWeather();
