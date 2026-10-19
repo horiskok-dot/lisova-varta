@@ -75,7 +75,7 @@ function renderWeather(data,cached=false){
 async function refreshWeather(){return load('weather',async signal=>{const c=map.getCenter(),data=await api('weather',{lat:c.lat.toFixed(3),lng:c.lng.toFixed(3)},signal);renderWeather(data);saveSource('weather',data);});}
 function isWaterNode(p){return p.geometryType==='node'||p.id?.startsWith('osm-node-');}
 const cancelWaterButton=document.createElement('button');
-cancelWaterButton.className='btn small';cancelWaterButton.type='button';cancelWaterButton.textContent='Отменить выбор точки';cancelWaterButton.hidden=true;$('#map-hint').after(cancelWaterButton);
+cancelWaterButton.className='btn small map-cancel-pick';cancelWaterButton.type='button';cancelWaterButton.textContent='Отменить выбор точки';cancelWaterButton.hidden=true;$('#map-hint').after(cancelWaterButton);
 window.ForestCancelMapClick=()=>{window.ForestMapClick=null;cancelWaterButton.hidden=true;$('#map-hint').textContent='Нажмите на карту, чтобы добавить объект';};
 cancelWaterButton.onclick=window.ForestCancelMapClick;
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.ForestMapClick)window.ForestCancelMapClick();});
