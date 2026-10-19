@@ -23,7 +23,7 @@
     }
     const ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
     const android=/Android/.test(navigator.userAgent);
-    instructions.textContent=ios?'В Safari нажмите «Поделиться» и выберите «На экран Домой».':android?'В Chrome откройте меню ⋮ и выберите «Установить приложение» или «Добавить на главный экран».':'В Chrome или Edge откройте меню ⋮ и выберите «Установить приложение». Если пункт недоступен, используйте актуальную версию браузера.';
+    instructions.textContent=ios?'У Safari натисніть «Поділитися» й виберіть «На початковий екран».':android?'У Chrome відкрийте меню ⋮ та виберіть «Установити застосунок» або «Додати на головний екран».':'У Chrome або Edge відкрийте меню ⋮ та виберіть «Установити застосунок». Якщо пункт недоступний, оновіть браузер до актуальної версії.';
     dialog.showModal();
   });
   document.querySelector('#close-install').addEventListener('click',()=>dialog.close());

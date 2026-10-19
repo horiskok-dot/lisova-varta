@@ -16,7 +16,7 @@
   function expandMap(expanded){
     document.body.classList.toggle('map-expanded',expanded);
     $('#map-expand').setAttribute('aria-pressed',String(expanded));
-    $('#map-expand').setAttribute('aria-label',expanded?'Свернуть карту':'Развернуть карту');
+    $('#map-expand').setAttribute('aria-label',expanded?'Згорнути мапу':'Розгорнути мапу');
     $('#map-expand').innerHTML=uiIcon(expanded?'close':'expand');
     setTimeout(()=>map.invalidateSize(),20);
   }
@@ -26,8 +26,8 @@
   function updateTools(){
     const field=$('#offline-toggle').getAttribute('aria-pressed')==='true';
     $('#tools-mode').setAttribute('aria-pressed',String(field));
-    $('#tools-mode-state').textContent=field?'Включён':'Выключен';
-    $('#tools-status').textContent=field?'Полевой режим · сохранённые данные':navigator.onLine?'Онлайн · источники можно обновить':'Без сети · журнал доступен на устройстве';
+    $('#tools-mode-state').textContent=field?'Увімкнено':'Вимкнено';
+    $('#tools-status').textContent=field?'Польовий режим · збережені дані':navigator.onLine?'Онлайн · джерела можна оновити':'Без мережі · журнал доступний на пристрої';
     $('#tools-install').hidden=$('#install-app').hidden;
   }
   $('#mobile-menu').onclick=()=>{updateTools();tools.showModal();};

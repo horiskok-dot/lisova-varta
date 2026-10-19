@@ -27,7 +27,7 @@ async function getTile({lat,lng}){
     if(!inCity(latMid,lngMid))continue;
     const size=(bounds.north-bounds.south)*111000*(bounds.east-bounds.west)*74000;
     if(size<800||size>20_000_000)continue;
-    features.set(e.id,{id:`osm-way-${e.id}`,name:(e.tags['name:uk']||e.tags.name||({wood:'Лесной участок',park:'Парк',water:'Водоём'})[tagsKind(e.tags)]).slice(0,100),kind:tagsKind(e.tags),lat:latMid,lng:lngMid,geometry:ring,areaM2:Math.round(size),lastEdited:e.timestamp||null,url:`https://www.openstreetmap.org/way/${e.id}`});
+    features.set(e.id,{id:`osm-way-${e.id}`,name:(e.tags['name:uk']||e.tags.name||({wood:'Лісова ділянка',park:'Парк',water:'Водойма'})[tagsKind(e.tags)]).slice(0,100),kind:tagsKind(e.tags),lat:latMid,lng:lngMid,geometry:ring,areaM2:Math.round(size),lastEdited:e.timestamp||null,url:`https://www.openstreetmap.org/way/${e.id}`});
   }
   console.log(`${lat},${lng}: ${data.elements.length} elements, ${features.size} eligible city areas`);
 }
