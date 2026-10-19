@@ -22,6 +22,7 @@ async function getJson(url,parent,timeout=18000){
 }
 async function api(name,params,signal){
   if(!onlineAllowed())throw Error('Отключите полевой режим или подключитесь к сети для обновления.');
+  if(window.ForestNative?.isNative)return window.ForestNative.api(name,params,signal);
   if(name==='weather'){
     try{
       const q=new URLSearchParams({latitude:params.lat,longitude:params.lng,current:'temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m',daily:'temperature_2m_max,precipitation_sum,wind_speed_10m_max',timezone:'Europe/Kyiv',forecast_days:'3'});
