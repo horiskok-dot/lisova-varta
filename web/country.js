@@ -4,8 +4,8 @@ let uaPlaces=[],placeSearchTimer;
 function searchPlaces(raw){
   const q=placeNorm(raw),results=$('#location-results');results.replaceChildren();if(q.length<2)return;
   const found=[];
-  for(const p of uaPlaces){const fields=[p[1],p[2],p[3],p[4]],texts=fields.map(placeNorm);let score=0;
-    if(texts.slice(0,3).includes(q))score=0;else if(texts.slice(0,3).some(v=>v.startsWith(q)))score=1;else if(texts.slice(0,3).some(v=>v.includes(q)))score=2;else if(texts[3].includes(q))score=3;else continue;
+  for(const p of uaPlaces){const names=[p[1],p[2],...p[3].split('|')].map(placeNorm),region=placeNorm(p[4]);let score=0;
+    if(names.includes(q))score=0;else if(names.some(v=>v.startsWith(q)))score=1;else if(names.some(v=>v.includes(q)))score=2;else if(region.includes(q))score=3;else continue;
     found.push({p,score});}
   found.sort((a,b)=>a.score-b.score||b.p[8]-a.p[8]);
   for(const {p} of found.slice(0,12)){const item=document.createElement('button');item.type='button';item.className='location-result';item.setAttribute('role','option');item.innerHTML=`<strong>${esc(placeName(p))}</strong><span>${esc(p[4]||'Украина')}${p[1]&&p[1]!==placeName(p)?' · '+esc(p[1]):''}</span>`;item.onclick=()=>{map.setView([p[5],p[6]],13);$('#location-search').value=placeName(p);results.replaceChildren();$('#location-status').textContent=`${placeName(p)}, ${p[4]||'Украина'} · ${p[5].toFixed(4)}, ${p[6].toFixed(4)}`;refreshWeather();};results.append(item);}
