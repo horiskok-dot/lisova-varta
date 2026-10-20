@@ -12,7 +12,7 @@ async function loadWorker(){
 }
 function isExternal(url){try{return ['https:','http:'].includes(new URL(url).protocol);}catch{return false;}}
 async function createWindow(){
-  const win=new BrowserWindow({width:1320,height:900,minWidth:720,minHeight:600,show:!process.argv.includes('--smoke-test'),title:'Лесной дозор',backgroundColor:'#f3f6f5',icon:path.join(__dirname,'icon.ico'),webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  const win=new BrowserWindow({width:1320,height:900,minWidth:720,minHeight:600,show:!process.argv.includes('--smoke-test'),title:'Лісова варта',backgroundColor:'#f3f6f5',icon:path.join(__dirname,'icon.ico'),webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
   win.webContents.setWindowOpenHandler(({url})=>{if(isExternal(url))shell.openExternal(url);return {action:'deny'};});
   win.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith('forest://app/')){event.preventDefault();if(isExternal(url))shell.openExternal(url);}});
   await win.loadURL('forest://app/');

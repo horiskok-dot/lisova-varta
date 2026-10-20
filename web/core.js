@@ -21,7 +21,8 @@
     return ['priority','nearest','value'].map(m=>greedyPlan(points,base,budget,speed,m,now)).sort((a,b)=>b.score-a.score||a.minutes-b.minutes)[0];
   }
   function validDate(v){return typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;}
-  function countLabel(n,forms){const key=new Intl.PluralRules('ru').select(n);return `${n} ${forms[key]||forms.other}`;}
+  function plural(n,forms){const key=new Intl.PluralRules('uk').select(n);return forms[key]||forms.other;}
+  function countLabel(n,forms){return `${n.toLocaleString('uk')} ${plural(n,forms)}`;}
   function gpx(points,base){const xml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="ForestWatch" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>План перевірок — точки, а не маршрут дорогами</name></metadata>'+[...points.map((p,i)=>({...p,name:`${i+1}. ${p.name}`})),{...base,name:'Початок і повернення'}].map(p=>`<wpt lat="${p.lat}" lon="${p.lng}"><name>${xml(p.name)}</name></wpt>`).join('')+'</gpx>';}
   function validate(data){
     if(!data||data.version!==1||!Array.isArray(data.points)||data.points.length>1000)throw Error('Потрібен експорт «Лісової варти» версії 1, до 1000 точок.');
@@ -31,5 +32,5 @@
     const legacyBaseChosen=data.baseSet===undefined&&(data.demo===true||Math.abs(data.base.lat-50.55)>1e-7||Math.abs(data.base.lng-30.35)>1e-7);
     return {version:1,points,base:{lat:data.base.lat,lng:data.base.lng},baseSet:data.baseSet===true||legacyBaseChosen,demo:data.demo===true,log:Array.isArray(data.log)?data.log.slice(0,200).filter(e=>e&&str(e.text,300)&&str(e.time,40)&&!isNaN(Date.parse(e.time))).map(e=>({text:e.text,time:e.time})):[]};
   }
-  const api={TYPES,STATUS,distance,age,stale,priority,plan,validDate,countLabel,gpx,validate};if(typeof module!=='undefined')module.exports=api;else root.ForestCore=api;
+  const api={TYPES,STATUS,distance,age,stale,priority,plan,validDate,plural,countLabel,gpx,validate};if(typeof module!=='undefined')module.exports=api;else root.ForestCore=api;
 })(typeof window!=='undefined'?window:globalThis);

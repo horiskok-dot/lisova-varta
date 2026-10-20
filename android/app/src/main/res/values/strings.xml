@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Лесной дозор</string>
-    <string name="title_activity_main">Лесной дозор</string>
+    <string name="app_name">Лісова варта</string>
+    <string name="title_activity_main">Лісова варта</string>
     <string name="package_name">org.forestwatch.field</string>
     <string name="custom_url_scheme">org.forestwatch.field</string>
 </resources>
