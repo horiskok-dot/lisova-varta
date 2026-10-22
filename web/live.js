@@ -77,18 +77,19 @@ function isWaterNode(p){return p.geometryType==='node'||p.id?.startsWith('osm-no
 const cancelWaterButton=document.createElement('button');
 cancelWaterButton.className='btn small map-cancel-pick';cancelWaterButton.type='button';cancelWaterButton.textContent='Скасувати вибір точки';cancelWaterButton.hidden=true;$('#map-hint').after(cancelWaterButton);
 window.ForestCancelMapClick=()=>{window.ForestMapClick=null;cancelWaterButton.hidden=true;$('#map-hint').textContent='Натисніть на мапу, щоб додати об’єкт';};
-window.ForestBeginMapClick=(handler,hint)=>{window.ForestCancelMapClick();window.ForestMapClick=handler;cancelWaterButton.hidden=false;$('#map-hint').textContent=hint;};
+window.ForestBeginMapClick=(handler,hint)=>{window.ForestCancelMapClick();pickBase=false;$('#pick-base').textContent=state.baseSet?'Змінити на мапі':'Вибрати на мапі';window.ForestMapClick=handler;cancelWaterButton.hidden=false;$('#map-hint').textContent=hint;};
 cancelWaterButton.onclick=window.ForestCancelMapClick;
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.ForestMapClick)window.ForestCancelMapClick();});
+window.addEventListener('view-changed',e=>{if(e.detail!=='map')window.ForestCancelMapClick();});
 function waterDraft(p,coords){
   const locatedByUser=!isWaterNode(p);
   const note=`Джерело: OpenStreetMap, ${p.url}. Тип: ${p.kind}. Доступ: ${p.access}. ${locatedByUser?'Можливе місце доступу користувач позначив на мапі.':'Координати об’єкта взято з OSM.'} Наявність води, місце забору та під’їзд не перевірено.`;
-  const point={id:p.id,name:p.name,type:'water',status:'needs',priority:'medium',lat:coords.lat,lng:coords.lng,owner:'',note:note.slice(0,1500),checkedAt:'',due:'',photo:''};
+  const point={id:locatedByUser?'':p.id,name:p.name,type:'water',status:'needs',priority:'medium',lat:coords.lat,lng:coords.lng,owner:'',note:note.slice(0,1500),checkedAt:'',due:'',photo:''};
   openEditor(point);$('#editor-title').textContent=locatedByUser?'Додати місце доступу для перевірки':'Додати об’єкт OSM для перевірки';
 }
 function addWater(p){
   window.ForestCancelMapClick();
-  const existing=state.points.find(v=>v.id===p.id);if(existing){focusPoint(existing.id);return;}
+  const existing=isWaterNode(p)&&state.points.find(v=>v.id===p.id);if(existing){focusPoint(existing.id);return;}
   if(isWaterNode(p)){waterDraft(p,{lat:p.lat,lng:p.lng});return;}
   if(!Array.isArray(p.geometry)||!p.geometry.length){toast('У збереженої водойми немає контуру. Оновіть дані OSM, перш ніж вибирати місце доступу.');return;}
   setView('map');map.fitBounds(L.latLngBounds(p.geometry.flat()),{padding:[45,45],maxZoom:16});
@@ -103,7 +104,7 @@ function renderWater(data,cached=false){
   const kindLabel={water:'Водойма',pond:'Ставок',lake:'Озеро',reservoir:'Водосховище',fire_hydrant:'Гідрант',water_tank:'Резервуар',suction_point:'Місце забору'};
   const legacyAreas=data.points.some(p=>!isWaterNode(p)&&(!Array.isArray(p.geometry)||!p.geometry.length));
   for(const p of data.points){
-    if(state.points.some(v=>v.id===p.id))continue;
+    if(isWaterNode(p)&&state.points.some(v=>v.id===p.id))continue;
     const node=isWaterNode(p),shape=Array.isArray(p.geometry)&&p.geometry.length?p.geometry:null;
     if(!node&&!shape)continue;
     const div=document.createElement('div');div.innerHTML=`<b>${esc(p.name)}</b><br>${esc(kindLabel[p.kind]||'Водний об’єкт')} · OSM<br>${node?'Координати об’єкта OSM.':'Контур об’єкта OSM; місце доступу не вказано.'}<br>Під’їзд і наявність води не перевірено.<br>Зміни на мапі: ${esc(stamp(p.lastEdited))}<br><a href="${esc(p.url)}" target="_blank" rel="noopener">Відкрити об’єкт в OSM ↗</a><br><button class="btn primary small popup-button">${node?'Додати для перевірки':'Вказати місце доступу'}</button>`;

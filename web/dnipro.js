@@ -1,6 +1,6 @@
 'use strict';
 const dniproLayer=L.layerGroup(),dniproRenderer=L.canvas({padding:.5}),dniproButton=$('#dnipro-show'),dniproStatus=$('#dnipro-status');
-let dniproData=null,dniproLoading=null;
+let dniproData=null,dniproLoading=null,dniproWaterOnly=false;
 const dniproNames={wood:'Лісова ділянка',park:'Парк',water:'Водойма'};
 const dniproColors={wood:'#bfdc62',park:'#efbe55',water:'#54c8e6'};
 function dniproDraft(area,coords){
@@ -29,7 +29,15 @@ async function loadDnipro(){
   dniproLoading=fetch('dnipro-areas.json').then(async r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();}).then(data=>{
     if(data.source!=='OpenStreetMap'||!Array.isArray(data.areas)||data.areas.length<100)throw Error('Неповні дані про ділянки Дніпра');
     dniproData=data;
-    for(const area of data.areas){
+    $('#dnipro-count').textContent=data.areas.length.toLocaleString('uk');
+    return data;
+  }).finally(()=>{dniproLoading=null;});
+  return dniproLoading;
+}
+function renderDnipro(){
+    dniproLayer.clearLayers();
+    const areas=dniproData.areas.filter(area=>!dniproWaterOnly||area.kind==='water');
+    for(const area of areas){
       if(!dniproNames[area.kind]||!Array.isArray(area.geometry)||area.geometry.length<4||!/^osm-way-\d+$/.test(area.id))continue;
       const color=dniproColors[area.kind];
       const shape=L.polygon(area.geometry,{renderer:dniproRenderer,color,weight:1.8,opacity:.95,fillColor:color,fillOpacity:.25,bubblingMouseEvents:false});
@@ -38,19 +46,16 @@ async function loadDnipro(){
       shape.on('click',e=>{if(window.ForestMapClick){window.ForestMapClick(e.latlng);map.closePopup();}});
       shape.addTo(dniproLayer);
     }
-    $('#dnipro-count').textContent=data.areas.length.toLocaleString('uk');
-    dniproStatus.textContent=`${data.areas.length.toLocaleString('uk')} контурів OSM · дані ${stamp(data.fetchedAt)}`;
-    return data;
-  }).finally(()=>{dniproLoading=null;});
-  return dniproLoading;
+    dniproStatus.textContent=`${C.countLabel(areas.length,{one:'контур',few:'контури',many:'контурів'})}${dniproWaterOnly?' водойм':''} OSM · дані ${stamp(dniproData.fetchedAt)}`;
 }
-async function showDnipro(focus=true){
+async function showDnipro(focus=true,waterOnly=false){
   dniproButton.disabled=true;
   try{
     await loadDnipro();
+    dniproWaterOnly=waterOnly;renderDnipro();
     if(!map.hasLayer(dniproLayer))dniproLayer.addTo(map);
     dniproButton.setAttribute('aria-pressed','true');
-    dniproButton.textContent='Приховати ділянки Дніпра';
+    dniproButton.textContent=waterOnly?'Приховати водойми Дніпра':'Приховати ділянки Дніпра';
     if(focus){map.fitBounds([[48.3558547,34.7489459],[48.5763901,35.2421952]],{padding:[20,20]});$('#location-search').value='Дніпро';$('#map-region-title').textContent='Дніпро';}
   }catch(error){dniproStatus.textContent='Не вдалося завантажити ділянки: '+error.message;}
   finally{dniproButton.disabled=false;}

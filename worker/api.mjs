@@ -14,7 +14,8 @@ export function parseWater(data){
   const isWater=e=>e.tags&&(e.tags.natural==='water'||e.tags.landuse==='reservoir'||['fire_hydrant','water_tank','suction_point'].includes(e.tags.emergency));
   const used=new Set();
   for(const r of data.elements.filter(e=>e.type==='relation'&&isWater(e)))for(const m of r.members||[])if(m.type==='way')used.add(m.ref);
-  const pathFor=way=>(way?.nodes||[]).map(id=>nodes.get(id)).filter(n=>Number.isFinite(n?.lat)&&Number.isFinite(n?.lon));
+  // A missing vertex must not become an invented straight shoreline segment.
+  const pathFor=way=>{const path=(way?.nodes||[]).map(id=>nodes.get(id));return path.every(n=>Number.isFinite(n?.lat)&&Number.isFinite(n?.lon))?path:[];};
   const result=[];
   for(const e of data.elements){
     if(!isWater(e)||e.type==='way'&&used.has(e.id))continue;
@@ -33,7 +34,7 @@ async function places(params){const q=params.get('q')?.trim();if(!q||q.length<2|
 async function weather(params){const {lat,lng}=coordinates(params);return cached(`weather:${lat}:${lng}`,15*60000,async()=>{const q=new URLSearchParams({latitude:String(lat),longitude:String(lng),current:'temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m',daily:'temperature_2m_max,precipitation_sum,wind_speed_10m_max',timezone:'Europe/Kyiv',forecast_days:'3'});const {data}=await get('https://api.open-meteo.com/v1/forecast?'+q);if(!data.current||!data.daily||!Number.isFinite(data.current.temperature_2m))throw new ApiError('Неповні дані про погоду.');return {source:'Open-Meteo',sourceUrl:'https://open-meteo.com/',fetchedAt:new Date().toISOString(),location:{lat,lng},timezone:data.timezone,current:data.current,daily:data.daily};});}
 async function water(params){
   const {lat,lng}=coordinates(params);
-  return cached(`water-v3:${lat}:${lng}`,24*3600000,async()=>{
+  return cached(`water-v4:${lat}:${lng}`,24*3600000,async()=>{
     let data,b;
     for(const [latRadius,lngRadius] of [[.005,.007],[.003,.004]]){
       b={south:lat-latRadius,west:lng-lngRadius,north:lat+latRadius,east:lng+lngRadius};

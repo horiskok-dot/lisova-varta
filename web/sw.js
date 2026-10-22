@@ -1,5 +1,5 @@
-const CACHE='forest-watch-v9';
-const ASSETS=['./','./index.html','./style.css','./design.css','./core.js','./app.js','./country.js','./ua-places.json','./live.js','./dnipro.js','./dnipro-areas.json','./install.js','./ui.js','./vendor/leaflet.js','./vendor/leaflet.css','./icon.svg','./icons/icon-192.png','./icons/icon-512.png','./manifest.webmanifest'];
+const CACHE='forest-watch-v11';
+const ASSETS=['./','./index.html','./style.css','./design.css','./water-sites.css','./core.js','./app.js','./country.js','./ua-places.json','./live.js','./water-sites.js','./water-sites.json','./dnipro.js','./dnipro-areas.json','./install.js','./ui.js','./vendor/leaflet.js','./vendor/leaflet.css','./icon.svg','./icons/icon-192.png','./icons/icon-512.png','./manifest.webmanifest'];
 const urls=ASSETS.map(p=>new URL(p,self.registration.scope).href);
 const allowed=new Set(urls.map(p=>new URL(p).pathname));
 const appResponse=r=>r.ok&&!r.redirected&&r.headers.get('X-Forest-App')==='1';
